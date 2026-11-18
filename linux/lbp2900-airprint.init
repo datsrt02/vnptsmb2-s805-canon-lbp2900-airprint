@@ -1,0 +1,46 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          lbp2900-airprint
+# Required-Start:    $network $remote_fs avahi-daemon
+# Required-Stop:     $network $remote_fs avahi-daemon
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: AirPrint server for Canon LBP2900
+### END INIT INFO
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/sbin
+DAEMON=/usr/local/sbin/lbp2900-airprint
+NAME=lbp2900-airprint
+PIDFILE=/run/$NAME.pid
+DESC="Canon LBP2900 AirPrint server"
+
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+export AIRPRINT_NAME AIRPRINT_PORT AIRPRINT_WEB_PORT
+
+case "$1" in
+  start)
+    printf 'Starting %s: ' "$DESC"
+    start-stop-daemon --start --quiet --background --make-pidfile \
+      --pidfile "$PIDFILE" --exec "$DAEMON"
+    echo "$NAME."
+    ;;
+  stop)
+    printf 'Stopping %s: ' "$DESC"
+    start-stop-daemon --stop --quiet --retry=TERM/10/KILL/5 \
+      --pidfile "$PIDFILE" --remove-pidfile
+    echo "$NAME."
+    ;;
+  restart|force-reload)
+    "$0" stop
+    "$0" start
+    ;;
+  status)
+    start-stop-daemon --status --pidfile "$PIDFILE"
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|force-reload|status}" >&2
+    exit 2
+    ;;
+esac
+
+exit 0

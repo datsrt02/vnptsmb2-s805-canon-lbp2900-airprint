@@ -1,0 +1,39 @@
+Gói Debian ARMHF cho VNPT SmartBox 2 S805
+=========================================
+
+Nguồn gốc:
+- Repository: https://github.com/datsrt02/esp32-airprint-canon-lbp2900
+- Commit nền: 2efcf17dcfa6ee873137941e2456803d44c39fe5
+- Ngày đóng gói: 2026-11-18
+
+Binary:
+- File: linux/lbp2900-airprint-armhf.bin
+- Target: ELF32 ARM, little-endian, EABI5, hard-float, static
+- SHA-256: 381a3b45180c3896775ac3a314526b91fc9b8ed2cdfdc2688c52bb03314209ae
+
+Thay đổi chính:
+- Port lõi IPP/AirPrint và driver CAPT sang Linux USBFS, không dùng CUPS.
+- Thêm backend USB hai chiều cho Canon 04a9:2676.
+- Sửa delay POSIX và nhận cả độ dài phản hồi CAPT binary/BCD.
+- Nhận status CAPT ngắn/extended, đọc ACK của START_0 và tự đồng bộ lại
+  back-channel sau một job bị ngắt.
+- Trả lỗi IPP đúng khi driver chưa mở được job và phát hiện hết giấy sớm.
+- Chỉ quảng cáo PWG Raster/URF cho IPP client và tự thu hồi job processing bị
+  mồ côi, tránh Windows gửi raw data rồi để queue kẹt vĩnh viễn.
+- Thêm SysV init, cấu hình /etc/default và quảng bá Avahi.
+- Thêm binary tĩnh ARMHF và installer tự chọn binary có sẵn.
+
+Đã kiểm tra:
+- Cross-build ARMHF hoàn tất với Zig 0.17.1.
+- CAPT/Hi-SCoA host self-test: OK, 0 lỗi.
+- Shell syntax và git diff whitespace: OK.
+
+Chưa thể kiểm tra trong môi trường build:
+- Trang giấy vật lý chưa ra ở lần thử 2026-11-18 vì máy in báo NOPAPER. Giao
+  dịch thật đã tới CAPT FIRE với các bộ đếm recv=1, decode=1.
+
+Cài đặt:
+  sudo sh linux/install-debian.sh
+
+Xem hướng dẫn và checklist thử máy thật tại linux/README.vi.md và
+docs/lbp2900.md.
