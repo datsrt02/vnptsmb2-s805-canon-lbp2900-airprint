@@ -4,11 +4,12 @@ Port IPP/AirPrint và driver CAPT cho Canon LBP2900/LBP2900B sang Linux ARMHF.
 Box đóng vai trò print server qua mạng LAN, không cần CUPS và không cần cài
 driver Canon CAPT trên máy Windows.
 
-> **Trạng thái (18/11/2026): beta, đã kiểm thử trên máy thật.** Windows 10 đã
-> in thành công Test Page qua IPP tới Canon LBP2900 USB `04a9:2676`. Các sửa
-> lỗi mới nhất giới hạn định dạng nhận vào ở `image/urf` và
-> `image/pwg-raster`, đồng thời tự hủy job mồ côi. Sau khi nâng cấp bản cũ,
-> cần xóa và thêm lại máy in trên Windows để làm mới capability đã cache.
+> **Trạng thái (19/11/2026): beta, đã kiểm thử trên máy thật.** Windows 10 đã
+> in thành công nhiều Test Page liên tiếp qua IPP tới Canon LBP2900 USB
+> `04a9:2676`. Bản hiện tại giới hạn đầu vào ở `image/urf` và
+> `image/pwg-raster`, tự hủy job mồ côi, dùng page ID do máy in cấp và chạy lại
+> chuỗi khởi tạo CAPT cho mỗi job để tránh `NOPAPER` giả. Sau khi nâng cấp bản
+> cũ, cần xóa và thêm lại máy in trên Windows để làm mới capability đã cache.
 
 ## Cấu hình đã kiểm thử
 
@@ -123,7 +124,7 @@ sh linux/install-debian.sh
 SHA-256 của binary đã kiểm thử:
 
 ```text
-4e34bd27f04e8e1a51e9f3ae66a6264b7c22f544f486f3f4f6769a11f5f5b0a1
+65b4528f339c8a48a09b503096386b5dafe471894bde46808cfbf2980325589f
 ```
 
 Installer thực hiện các việc sau:
