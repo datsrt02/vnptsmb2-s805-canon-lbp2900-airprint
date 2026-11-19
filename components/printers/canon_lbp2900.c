@@ -634,6 +634,27 @@ static int wait_for_page(capt_job_t *j, int which, uint16_t page)
     return j->err = -1;
 }
 
+// CAPT page identifiers are assigned by the printer and do not restart at 1
+// for every IPP job.  The reference captdriver considers a page accepted when
+// the received and decoding identifiers match, then uses that identifier for
+// FIRE, page-out and completion.  Comparing received with j->page_no made the
+// second one-page job wait for page 1 while the printer correctly reported 2.
+static int wait_for_received_page(capt_job_t *j, uint16_t *page)
+{
+    if (!j->live)
+        return 0;
+    for (int i = 0; i < CAPT_PAGE_TIMEOUT_TICKS; i++) {
+        if (get_xstatus(j) < 0)
+            return -1;
+        if (j->status.received == j->status.decoding) {
+            *page = j->status.decoding;
+            return 0;
+        }
+        pause_100ms();
+    }
+    return j->err = -1;
+}
+
 static int page_end(void *job)
 {
     capt_job_t *j = job;
@@ -642,10 +663,9 @@ static int page_end(void *job)
     j->page_no++;
     uint16_t page = (uint16_t)j->page_no;
     if (j->live) {
-        // The printer assigns/echoes the decoding page number in status.
-        if (wait_for_page(j, 0, page) < 0)
+        // The printer assigns the page number; it may continue across jobs.
+        if (wait_for_received_page(j, &page) < 0)
             return -1;
-        page = j->status.decoding;
     }
     uint8_t p[2]; put16(p, page);
     if (job_setup(j, 2, page) < 0 || wait_ready(j) < 0 ||
@@ -663,7 +683,7 @@ static int job_end(void *job)
     capt_job_t *j = job;
     if (j->page_open && !j->err)
         page_end(j);
-    uint16_t page = (uint16_t)j->page_no;
+    uint16_t page = j->live ? j->status.decoding : (uint16_t)j->page_no;
     if (!j->err && wait_for_page(j, 2, page) == 0 && job_setup(j, 4, page) == 0) {
         uint8_t p[2]; put16(p, j->job_id);
         command_reply(j, CAPT_JOB_END, p, sizeof(p));

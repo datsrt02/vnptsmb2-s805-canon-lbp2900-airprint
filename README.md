@@ -123,7 +123,7 @@ sh linux/install-debian.sh
 SHA-256 của binary đã kiểm thử:
 
 ```text
-381a3b45180c3896775ac3a314526b91fc9b8ed2cdfdc2688c52bb03314209ae
+4e34bd27f04e8e1a51e9f3ae66a6264b7c22f544f486f3f4f6769a11f5f5b0a1
 ```
 
 Installer thực hiện các việc sau:
@@ -236,6 +236,10 @@ service lbp2900-airprint status
 
 Tắt/bật nguồn máy in nếu CAPT đang giữ trạng thái lỗi. Kiểm tra giấy, nắp máy
 và cartridge. Backend sẽ tự detach `usblp` khi in rồi trả interface sau job.
+
+LBP2900 chỉ trả trạng thái CAPT chi tiết khi một job đang giữ USB, nên trang
+web có thể vẫn ghi `Ready` lúc idle dù khay vừa hết giấy. Log `E capt: no paper`
+và cờ CAPT `NOPAPER` là trạng thái cảm biến thật; nạp/chỉnh giấy rồi gửi lại job.
 
 ### Lấy log trực tiếp
 

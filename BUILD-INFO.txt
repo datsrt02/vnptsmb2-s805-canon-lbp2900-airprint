@@ -4,12 +4,12 @@ Gói Debian ARMHF cho VNPT SmartBox 2 S805
 Nguồn gốc:
 - Repository: https://github.com/datsrt02/esp32-airprint-canon-lbp2900
 - Commit nền: 2efcf17dcfa6ee873137941e2456803d44c39fe5
-- Ngày đóng gói: 2026-11-18
+- Ngày đóng gói: 2026-11-19
 
 Binary:
 - File: linux/lbp2900-airprint-armhf.bin
 - Target: ELF32 ARM, little-endian, EABI5, hard-float, static
-- SHA-256: 381a3b45180c3896775ac3a314526b91fc9b8ed2cdfdc2688c52bb03314209ae
+- SHA-256: 4e34bd27f04e8e1a51e9f3ae66a6264b7c22f544f486f3f4f6769a11f5f5b0a1
 
 Thay đổi chính:
 - Port lõi IPP/AirPrint và driver CAPT sang Linux USBFS, không dùng CUPS.
@@ -20,6 +20,8 @@ Thay đổi chính:
 - Trả lỗi IPP đúng khi driver chưa mở được job và phát hiện hết giấy sớm.
 - Chỉ quảng cáo PWG Raster/URF cho IPP client và tự thu hồi job processing bị
   mồ côi, tránh Windows gửi raw data rồi để queue kẹt vĩnh viễn.
+- Dùng page ID do máy in CAPT cấp thay vì giả định mỗi IPP job bắt đầu từ 1;
+  sửa lỗi job đầu in được nhưng job kế tiếp treo rồi báo `printer-stopped`.
 - Thêm SysV init, cấu hình /etc/default và quảng bá Avahi.
 - Thêm binary tĩnh ARMHF và installer tự chọn binary có sẵn.
 
@@ -27,10 +29,13 @@ Thay đổi chính:
 - Cross-build ARMHF hoàn tất với Zig 0.17.1.
 - CAPT/Hi-SCoA host self-test: OK, 0 lỗi.
 - Shell syntax và git diff whitespace: OK.
+- Windows Test Page và một tài liệu PDF đã in thành công trên LBP2900 thật.
+- Sau bản sửa page ID, job liên tiếp thứ hai nhận đúng ID 2 và đi tới kéo giấy.
 
-Chưa thể kiểm tra trong môi trường build:
-- Trang giấy vật lý chưa ra ở lần thử 2026-11-18 vì máy in báo NOPAPER. Giao
-  dịch thật đã tới CAPT FIRE với các bộ đếm recv=1, decode=1.
+Kiểm tra còn lại:
+- Hoàn tất hai trang liên tiếp sau khi nạp lại giấy. Lần thử 2026-11-19, job
+  thứ nhất hoàn tất; job thứ hai đi qua lỗi page ID cũ nhưng cảm biến trả
+  `NOPAPER`, nên daemon kết thúc đúng với lỗi hết giấy.
 
 Cài đặt:
   sudo sh linux/install-debian.sh
