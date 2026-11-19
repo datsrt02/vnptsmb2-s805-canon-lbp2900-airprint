@@ -239,7 +239,9 @@ và cartridge. Backend sẽ tự detach `usblp` khi in rồi trả interface sau
 
 LBP2900 chỉ trả trạng thái CAPT chi tiết khi một job đang giữ USB, nên trang
 web có thể vẫn ghi `Ready` lúc idle dù khay vừa hết giấy. Log `E capt: no paper`
-và cờ CAPT `NOPAPER` là trạng thái cảm biến thật; nạp/chỉnh giấy rồi gửi lại job.
+và cờ CAPT `NOPAPER` sau chuỗi khởi tạo đầu job thường là trạng thái cảm biến
+thật; nạp/chỉnh giấy rồi gửi lại job. Bản từ ngày 19/11/2026 luôn chạy lại chuỗi
+khởi tạo CAPT cho mỗi IPP job để tránh `NOPAPER` giả ở job thứ hai liên tiếp.
 
 ### Lấy log trực tiếp
 

@@ -12,9 +12,11 @@ dịch CAPT mà LBP2900 yêu cầu.
 - In: đơn sắc, 600 dpi, A4/Letter, URF hoặc PWG Raster qua IPP.
 - Khám phá iPhone/macOS: Avahi `_ipp._tcp`, subtype `_universal`.
 - Không có: scan, duplex, IPPS, xác thực, PDF/JPEG trực tiếp qua IPP.
-- Đã in thành công Windows Test Page trên Canon LBP2900 thật ngày 18/11/2026.
-  Bản hiện tại chỉ quảng bá URF/PWG Raster và có cơ chế hủy job mồ côi; sau
-  khi cập nhật cần xóa/thêm lại hàng đợi IPP trên Windows.
+- Đã in thành công ba Windows Test Page liên tiếp trên Canon LBP2900 thật ngày
+  19/11/2026. Mỗi IPP job chạy lại chuỗi khởi tạo CAPT để reset bộ đếm feed/page,
+  tránh lỗi `NOPAPER` giả từng xuất hiện ở job thứ hai. Bản hiện tại chỉ quảng
+  bá URF/PWG Raster và có cơ chế hủy job mồ côi; sau khi cập nhật cần xóa/thêm
+  lại hàng đợi IPP trên Windows.
 
 ## Chuẩn bị image S805
 

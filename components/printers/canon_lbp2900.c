@@ -561,7 +561,12 @@ static int page_begin(void *job, int src_w, int src_h, int bytes_pp)
 
     if (j->live && get_xstatus(j) < 0)
         return -1;
-    if (j->live && (flag(j, 0, 5) || flag(j, 0, 4))) {
+    // The LBP2900 may keep the engine initialized after JOB_END while its
+    // feed/page counter remains at the completed sheet.  A new host-side job
+    // must start with the same initialization sequence as a cold/uninitialized
+    // job; otherwise the printer accepts it as page 2 and then reports a
+    // spurious NOPAPER even with a loaded stack.
+    if (j->live) {
         static const uint8_t upload[16] = {0xee, 0xdb, 0xea, 0xad};
         if (command_reply(j, CAPT_START_1, NULL, 0) < 0 ||
             command_reply(j, CAPT_START_2, NULL, 0) < 0 ||
