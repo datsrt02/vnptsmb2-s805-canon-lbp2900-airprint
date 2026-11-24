@@ -501,6 +501,8 @@ static int send_page_params(capt_job_t *j)
     return 0;
 }
 
+static int wait_for_page(capt_job_t *j, int which, uint16_t page);
+
 static void *job_begin(const printer_driver_t *d, const printer_io_t *io, int dpi, int paper)
 {
     (void)d;
@@ -561,11 +563,13 @@ static int page_begin(void *job, int src_w, int src_h, int bytes_pp)
 
     if (j->live && get_xstatus(j) < 0)
         return -1;
-    // The LBP2900 may keep the engine initialized after JOB_END while its
-    // feed/page counter remains at the completed sheet.  A new host-side job
-    // must start with the same initialization sequence as a cold/uninitialized
-    // job; otherwise the printer accepts it as page 2 and then reports a
-    // spurious NOPAPER even with a loaded stack.
+    // The LBP2900 retains its feed/page counter after a sheet.  Before the
+    // next page/copy, wait until the preceding sheet is fully completed; an
+    // earlier reset at page-out can stall a content-heavy page.  Then use the
+    // cold initialization sequence so every submitted sheet starts as CAPT
+    // page 1 instead of page 2 (which this model reports as false NOPAPER).
+    if (j->live && j->page_no > 0 && wait_for_page(j, 2, j->status.decoding) < 0)
+        return -1;
     if (j->live) {
         static const uint8_t upload[16] = {0xee, 0xdb, 0xea, 0xad};
         if (command_reply(j, CAPT_START_1, NULL, 0) < 0 ||

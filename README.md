@@ -8,10 +8,11 @@ driver Canon CAPT trên máy Windows.
 > in thành công nhiều Test Page liên tiếp qua IPP tới Canon LBP2900 USB
 > `04a9:2676`. Bản hiện tại giới hạn đầu vào ở `image/urf` và
 > `image/pwg-raster`, tự hủy job mồ côi, dùng page ID do máy in cấp và chạy lại
-> chuỗi khởi tạo CAPT cho mỗi job để tránh `NOPAPER` giả. Sau khi nâng cấp bản
+> chuỗi khởi tạo CAPT sau khi bản trước đã hoàn tất để tránh `NOPAPER` giả và
+> tránh treo ở bản sao tiếp theo. Sau khi nâng cấp bản
 > cũ, cần xóa và thêm lại máy in trên Windows để làm mới capability đã cache.
-> Đã kiểm thử một tài liệu một trang với `copies=3`: box hoàn tất đúng ba
-> impressions trong cùng IPP job.
+> Đã kiểm thử các job một trang với `copies=2` và `copies=3`: box chờ máy in
+> hoàn tất cơ học từng tờ rồi hoàn tất đủ số bản trong cùng IPP job.
 
 ## Cấu hình đã kiểm thử
 
@@ -127,7 +128,7 @@ sh linux/install-debian.sh
 SHA-256 của binary đã kiểm thử:
 
 ```text
-8cfda84bfcd9c2fb88946c2792624fc97038dbb2344b3bb6de5e00623e5058df
+9a80c3c3d424a852b75730aafa8dbbfbd77cd8732cc241a3874d0bcab728c973
 ```
 
 Installer thực hiện các việc sau:
@@ -214,7 +215,9 @@ thời `http://192.168.1.33:8080/` để thấy job chuyển từ `job-printing`
 
 Khi chọn 3 copies cho một tài liệu một trang, trang web phải báo `3 page(s)`.
 Bản Linux chỉ lưu tạm luồng URF/PWG khi `copies > 1`; file tạm được đóng/xóa
-ngay khi job kết thúc. Vì vậy box cần đủ dung lượng trống cho một raster job.
+ngay khi job kết thúc. Trước mỗi bản tiếp theo, server đợi CAPT báo bản trước
+đã hoàn tất rồi mới reset bộ đếm trang và gửi dữ liệu. Vì vậy box cần đủ dung
+lượng trống cho một raster job.
 
 ## 6. Xử lý lỗi thường gặp
 

@@ -21,6 +21,8 @@ dịch CAPT mà LBP2900 yêu cầu.
   lại hàng đợi IPP trên Windows.
 - Ngày 24/11/2026 đã kiểm thử phần cứng một trang với `copies=3`; CAPT hoàn tất
   ba lần kéo giấy và web báo `job-completed-successfully`, `3 page(s)`.
+- Driver đợi CAPT báo tờ trước đã `completed` rồi mới khởi tạo lại engine cho
+  tờ kế tiếp. Kiểm thử `copies=2` kết thúc đủ hai trang, không còn treo ở bản 2.
 
 ## Chuẩn bị image S805
 
