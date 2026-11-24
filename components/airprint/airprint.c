@@ -71,6 +71,7 @@ typedef struct {
     const char *reason;         // job-state-reasons keyword
     time_t created, processing, completed;
     int impressions;
+    int copies;
     int64_t bytes;
     volatile int line, height;  // progress of the page being printed (read without the lock)
     volatile bool cancel;
@@ -235,6 +236,17 @@ static int doc_read(void *ctx, uint8_t *buf, size_t n)
     if (k > 0)
         d->job->bytes += k;
     return k;
+}
+
+typedef struct {
+    FILE *file;
+} spool_reader_t;
+
+static int spool_read(void *ctx, uint8_t *buf, size_t n)
+{
+    spool_reader_t *s = ctx;
+    size_t got = fread(buf, 1, n, s->file);
+    return got || feof(s->file) ? (int)got : -1;
 }
 
 // Discards the rest of the request body. Clients only read the response once
@@ -477,6 +489,12 @@ static int printer_state(const airprint_status_t *st)
     return (s_active && s_active->state == JOB_PROCESSING) || st->busy ? 4 : 3;
 }
 
+static int max_copies(void)
+{
+    int n = s_cfg->max_copies;
+    return n > 1 ? (n > 99 ? 99 : n) : 1;
+}
+
 static void add_printer_attrs(ipp_out_t *o, const conn_t *c, const filter_t *f)
 {
     const airprint_config_t *cfg = s_cfg;
@@ -499,7 +517,7 @@ static void add_printer_attrs(ipp_out_t *o, const conn_t *c, const filter_t *f)
     if (W("copies-default"))
         ipp_out_int(o, IPP_TAG_INTEGER, "copies-default", 1);
     if (W("copies-supported"))
-        ipp_out_range(o, "copies-supported", 1, 1);
+        ipp_out_range(o, "copies-supported", 1, max_copies());
     if (W("document-format-default"))
         ipp_out_str(o, IPP_TAG_MIMETYPE, "document-format-default", "image/pwg-raster");
     if (W("document-format-supported"))
@@ -762,7 +780,7 @@ static void add_printer_attrs(ipp_out_t *o, const conn_t *c, const filter_t *f)
     if (W("urf-supported")) {
         // comma separated list -> 1setOf keyword
         char urf[64];
-        printer_driver_urf(drv, urf, sizeof(urf));
+        printer_driver_urf_copies(drv, max_copies(), urf, sizeof(urf));
         char *save = NULL;
         int i = 0;
         for (char *t = strtok_r(urf, ",", &save); t; t = strtok_r(NULL, ",", &save), i++)
@@ -817,6 +835,8 @@ static void add_job_attrs(ipp_out_t *o, const conn_t *c, const job_t *j, const f
             ipp_out_str(o, IPP_TAG_NAME, "job-originating-user-name", j->user[0] ? j->user : "anonymous");
         if (W("job-impressions-completed"))
             ipp_out_int(o, IPP_TAG_INTEGER, "job-impressions-completed", j->impressions);
+        if (W("copies"))
+            ipp_out_int(o, IPP_TAG_INTEGER, "copies", j->copies);
         if (W("job-k-octets-processed"))
             ipp_out_int(o, IPP_TAG_INTEGER, "job-k-octets-processed", (int32_t)(j->bytes / 1024));
         if (W("document-format") && j->format[0])
@@ -882,6 +902,7 @@ static job_t *job_create(const ipp_request_t *req)
     j->id = s_next_id++;
     j->state = JOB_PENDING;
     j->created = time(NULL);
+    j->copies = ipp_attr_int(ipp_find(req, IPP_TAG_JOB, "copies"), 1);
     ipp_attr_str(ipp_find(req, IPP_TAG_OPERATION, "job-name"), j->name, sizeof(j->name));
     ipp_attr_str(ipp_find(req, IPP_TAG_OPERATION, "requesting-user-name"), j->user, sizeof(j->user));
     s_active = j;
@@ -956,7 +977,11 @@ static int pipe_page_begin(void *user, const raster_page_t *pg)
     }
     p->job->line = 0;
     p->job->height = pg->height;
-    return d->page_begin(p->drv_job, pg->width, pg->height, pg->bytes_pp) ? 4 : 0;
+    if (d->page_begin(p->drv_job, pg->width, pg->height, pg->bytes_pp)) {
+        p->err = IPP_DEVICE_ERROR;
+        return 4;
+    }
+    return 0;
 }
 
 static int pipe_line(void *user, int y, const uint8_t *px)
@@ -969,7 +994,11 @@ static int pipe_line(void *user, int y, const uint8_t *px)
         vTaskDelay(1);      // let the idle task run (task watchdog)
 #endif
     int64_t t0 = now_us();
-    int r = s_cfg->driver->page_line(p->drv_job, y, px) ? 4 : 0;
+    int r = 0;
+    if (s_cfg->driver->page_line(p->drv_job, y, px)) {
+        p->err = IPP_DEVICE_ERROR;
+        r = 4;
+    }
     p->render_us += now_us() - t0;
     p->job->line = y + 1;
     return r;
@@ -978,8 +1007,10 @@ static int pipe_line(void *user, int y, const uint8_t *px)
 static int pipe_page_end(void *user, const raster_page_t *pg)
 {
     pipe_t *p = user;
-    if (s_cfg->driver->page_end(p->drv_job))
+    if (s_cfg->driver->page_end(p->drv_job)) {
+        p->err = IPP_DEVICE_ERROR;
         return 4;
+    }
     pthread_mutex_lock(&s_lock);
     p->job->impressions++;
     pthread_mutex_unlock(&s_lock);
@@ -1003,7 +1034,8 @@ static int print_document(conn_t *c, job_t *j)
     pthread_mutex_unlock(&s_lock);
     if (s_cfg->job_state)
         s_cfg->job_state(s_cfg->ctx, true);
-    LOGI("job %d: printing \"%s\" (%s) from %s", j->id, j->name, j->format, j->user);
+    LOGI("job %d: printing \"%s\" (%s), %d cop%s from %s", j->id, j->name, j->format, j->copies,
+         j->copies == 1 ? "y" : "ies", j->user);
 
     pipe_t *p = calloc(1, sizeof(*p));
     if (!p) {
@@ -1020,7 +1052,60 @@ static int print_document(conn_t *c, job_t *j)
     doc_reader_t rd = {c, j, 0};
     raster_cb_t cb = {pipe_page_begin, pipe_line, pipe_page_end};
     int64_t t_start = now_us();
-    int r = raster_decode(doc_read, &rd, &cb, p);
+    FILE *spool = NULL;
+    int r = 0;
+    if (j->copies > 1) {
+        spool = tmpfile();
+        if (!spool) {
+            p->err = IPP_INTERNAL_ERROR;
+            r = 1;
+        } else {
+            uint8_t buf[4096];
+            int n;
+            while ((n = doc_read(&rd, buf, sizeof(buf))) > 0) {
+                if (j->cancel) {
+                    r = 1;
+                    break;
+                }
+                if (fwrite(buf, 1, (size_t)n, spool) != (size_t)n) {
+                    p->err = IPP_INTERNAL_ERROR;
+                    r = 1;
+                    break;
+                }
+            }
+            if (n < 0)
+                r = RASTER_ERR_IO;
+            else if (!p->err && (fflush(spool) != 0 || fseek(spool, 0, SEEK_SET) != 0)) {
+                p->err = IPP_INTERNAL_ERROR;
+                r = 1;
+            }
+        }
+    }
+    if (r == 0) {
+        int pages = 0;
+        for (int copy = 0; copy < j->copies; copy++) {
+            int one;
+            if (spool) {
+                if (copy && fseek(spool, 0, SEEK_SET) != 0) {
+                    p->err = IPP_INTERNAL_ERROR;
+                    r = 1;
+                    break;
+                }
+                spool_reader_t sr = {spool};
+                one = raster_decode(spool_read, &sr, &cb, p);
+            } else {
+                one = raster_decode(doc_read, &rd, &cb, p);
+            }
+            if (one <= 0 || p->err || j->cancel) {
+                r = one;
+                break;
+            }
+            pages += one;
+            r = pages;
+        }
+    }
+    if (spool)
+        fclose(spool);
     if (p->drv_job && s_cfg->driver->job_stats) {
         char stats[160];
         s_cfg->driver->job_stats(p->drv_job, stats, sizeof(stats));
@@ -1114,6 +1199,14 @@ static int check_job_request(const ipp_request_t *req, ipp_out_t *unsup)
     if (comp[0] && strcmp(comp, "none") != 0) {
         ipp_out_str(unsup, IPP_TAG_KEYWORD, "compression", comp);
         return IPP_COMPRESSION_NOT_SUPPORTED;
+    }
+    const ipp_attr_t *copies_attr = ipp_find(req, IPP_TAG_JOB, "copies");
+    if (copies_attr) {
+        int copies = ipp_attr_int(copies_attr, 0);
+        if (copies < 1 || copies > max_copies()) {
+            ipp_out_raw(unsup, copies_attr->tag, "copies", copies_attr->value, copies_attr->value_len);
+            return IPP_ATTRIBUTES_NOT_SUPPORTED;
+        }
     }
     return IPP_OK;
 }

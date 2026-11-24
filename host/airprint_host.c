@@ -142,6 +142,7 @@ int main(int argc, char **argv)
         .uuid = "a4d1e9b2-0b6f-4c3e-9d2a-5e8f7c6b1a00",
         .device_id = "MFG:Canon;MDL:MG2500 series;CMD:URF,PWG;",
         .port = 8631,
+        .max_copies = 99,
         .get_status = get_status,
         .job_open = job_open,
         .job_write = job_write,

@@ -151,6 +151,7 @@ int main(int argc, char **argv)
         .device_id = "MFG:Canon;MDL:LBP2900;CMD:CAPT;CLS:PRINTER;",
         .port = env_port("AIRPRINT_PORT", 631),
         .web_port = env_port("AIRPRINT_WEB_PORT", 8080),
+        .max_copies = 99,
         .driver = driver,
         .get_status = get_status,
         .job_open = job_open,

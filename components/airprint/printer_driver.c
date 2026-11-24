@@ -15,16 +15,25 @@ int printer_driver_paper_for(const printer_driver_t *d, int height_px, int dpi)
     return best;
 }
 
-void printer_driver_urf(const printer_driver_t *d, char *buf, size_t n)
+void printer_driver_urf_copies(const printer_driver_t *d, int copies, char *buf, size_t n)
 {
-    // V1.4, one copy, 8-bit gray (+ sRGB), the resolutions, plain paper, 3 qualities
+    // V1.4, copies, 8-bit gray (+ sRGB), the resolutions, plain paper, 3 qualities
     int lo = d->resolutions[0], hi = d->resolutions[d->nresolutions - 1];
     char rs[24];
     if (lo == hi)
         snprintf(rs, sizeof(rs), "%d", lo);
     else
         snprintf(rs, sizeof(rs), "%d-%d", lo, hi);
-    snprintf(buf, n, "V1.4,CP1,W8%s,RS%s,MT1,PQ3-4-5", d->color ? ",SRGB24" : "", rs);
+    if (copies < 1)
+        copies = 1;
+    if (copies > 99)
+        copies = 99;
+    snprintf(buf, n, "V1.4,CP%d,W8%s,RS%s,MT1,PQ3-4-5", copies, d->color ? ",SRGB24" : "", rs);
+}
+
+void printer_driver_urf(const printer_driver_t *d, char *buf, size_t n)
+{
+    printer_driver_urf_copies(d, 1, buf, n);
 }
 
 bool printer_driver_has_dpi(const printer_driver_t *d, int dpi)

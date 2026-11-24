@@ -41,6 +41,7 @@ typedef struct {
     const char *device_id;      // IEEE 1284 ID advertised to clients
     int port;                   // 631
     int web_port;               // the same server on a second port for browsers (80), 0 = none
+    int max_copies;              // server-side copies, 0/1 = one copy only
     // the printer model: capabilities and its raster -> printer data conversion
     const struct printer_driver *driver;
 

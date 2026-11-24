@@ -4,12 +4,14 @@ Port IPP/AirPrint và driver CAPT cho Canon LBP2900/LBP2900B sang Linux ARMHF.
 Box đóng vai trò print server qua mạng LAN, không cần CUPS và không cần cài
 driver Canon CAPT trên máy Windows.
 
-> **Trạng thái (19/11/2026): beta, đã kiểm thử trên máy thật.** Windows 10 đã
+> **Trạng thái (24/11/2026): beta, đã kiểm thử trên máy thật.** Windows 10 đã
 > in thành công nhiều Test Page liên tiếp qua IPP tới Canon LBP2900 USB
 > `04a9:2676`. Bản hiện tại giới hạn đầu vào ở `image/urf` và
 > `image/pwg-raster`, tự hủy job mồ côi, dùng page ID do máy in cấp và chạy lại
 > chuỗi khởi tạo CAPT cho mỗi job để tránh `NOPAPER` giả. Sau khi nâng cấp bản
 > cũ, cần xóa và thêm lại máy in trên Windows để làm mới capability đã cache.
+> Đã kiểm thử một tài liệu một trang với `copies=3`: box hoàn tất đúng ba
+> impressions trong cùng IPP job.
 
 ## Cấu hình đã kiểm thử
 
@@ -23,6 +25,7 @@ driver Canon CAPT trên máy Windows.
 | Máy khách | Windows 10 IoT Enterprise LTSC 2021, PowerShell 5.1 |
 | Giao thức | IPP trên cổng 631; trang trạng thái trên cổng 8080 |
 | Định dạng | URF/PWG Raster, đơn sắc 600 dpi, A4/Letter |
+| Số bản sao | 1–99; bản Linux lưu tạm raster gốc và phát lại theo `copies` |
 
 Image Debian gốc của box dùng SysV init nên **không dùng `systemctl`**. Lệnh
 tương đương là `service lbp2900-airprint ...`. Muốn dùng `systemctl` phải thay
@@ -124,7 +127,7 @@ sh linux/install-debian.sh
 SHA-256 của binary đã kiểm thử:
 
 ```text
-65b4528f339c8a48a09b503096386b5dafe471894bde46808cfbf2980325589f
+8cfda84bfcd9c2fb88946c2792624fc97038dbb2344b3bb6de5e00623e5058df
 ```
 
 Installer thực hiện các việc sau:
@@ -193,6 +196,11 @@ Lưu ý:
 - không dùng Standard TCP/IP port, RAW 9100 hay LPR;
 - nếu hàng đợi chỉ hiện `Connecting`, kiểm tra cổng 631, Print Spooler, rồi
   xóa/thêm lại hàng đợi như trên.
+- sau khi nâng từ bản cũ không hỗ trợ nhiều bản sao, bắt buộc xóa rồi thêm lại
+  hàng đợi IPP để Windows nhận `copies-supported=1-99`, `CP99` và `Copies=T`;
+- nếu `Get-Printer` hiện `DriverName = Canon LBP2900` và `PortName = USB001`,
+  đó là hàng đợi USB cục bộ, không phải print server. Hàng đợi box phải dùng
+  **Microsoft IPP Class Driver**.
 
 Mở giao diện quản lý máy in:
 
@@ -203,6 +211,10 @@ Start-Process "ms-settings:printers"
 Chọn máy in IPP vừa thêm → **Manage** → **Print a test page**. Theo dõi đồng
 thời `http://192.168.1.33:8080/` để thấy job chuyển từ `job-printing` sang
 `job-completed-successfully`.
+
+Khi chọn 3 copies cho một tài liệu một trang, trang web phải báo `3 page(s)`.
+Bản Linux chỉ lưu tạm luồng URF/PWG khi `copies > 1`; file tạm được đóng/xóa
+ngay khi job kết thúc. Vì vậy box cần đủ dung lượng trống cho một raster job.
 
 ## 6. Xử lý lỗi thường gặp
 

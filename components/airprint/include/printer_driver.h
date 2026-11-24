@@ -98,6 +98,7 @@ int printer_driver_paper_for(const printer_driver_t *d, int height_px, int dpi);
 // The URF capability string (DNS-SD TXT and IPP), e.g.
 // "V1.4,CP1,W8,SRGB24,RS300-600,MT1,PQ3-4-5".
 void printer_driver_urf(const printer_driver_t *d, char *buf, size_t n);
+void printer_driver_urf_copies(const printer_driver_t *d, int copies, char *buf, size_t n);
 bool printer_driver_has_dpi(const printer_driver_t *d, int dpi);
 
 #ifdef __cplusplus

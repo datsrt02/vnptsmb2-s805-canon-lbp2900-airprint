@@ -10,6 +10,8 @@ dịch CAPT mà LBP2900 yêu cầu.
 - Kiến trúc đích: Debian 11 ARMHF, Linux 3.10.33, SysV init.
 - Máy in: Canon LBP2900/LBP2900B USB `04a9:2676`.
 - In: đơn sắc, 600 dpi, A4/Letter, URF hoặc PWG Raster qua IPP.
+- Copies: 1–99; với nhiều bản sao, server lưu tạm đúng một raster document rồi
+  phát lại trong cùng IPP job.
 - Khám phá iPhone/macOS: Avahi `_ipp._tcp`, subtype `_universal`.
 - Không có: scan, duplex, IPPS, xác thực, PDF/JPEG trực tiếp qua IPP.
 - Đã in thành công ba Windows Test Page liên tiếp trên Canon LBP2900 thật ngày
@@ -17,6 +19,8 @@ dịch CAPT mà LBP2900 yêu cầu.
   tránh lỗi `NOPAPER` giả từng xuất hiện ở job thứ hai. Bản hiện tại chỉ quảng
   bá URF/PWG Raster và có cơ chế hủy job mồ côi; sau khi cập nhật cần xóa/thêm
   lại hàng đợi IPP trên Windows.
+- Ngày 24/11/2026 đã kiểm thử phần cứng một trang với `copies=3`; CAPT hoàn tất
+  ba lần kéo giấy và web báo `job-completed-successfully`, `3 page(s)`.
 
 ## Chuẩn bị image S805
 
